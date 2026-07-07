@@ -1,0 +1,39 @@
+{
+  "name": "frontgem",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n velite,next \"velite --watch\" \"next dev\"",
+    "build": "velite --clean && next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "velite --clean && tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.2.10",
+    "next-themes": "^0.4.6",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@shikijs/rehype": "^4.3.1",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@tailwindcss/typography": "^0.5.20",
+    "@types/node": "^24.10.1",
+    "concurrently": "^9.2.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.10",
+    "feed": "^6.0.0",
+    "reading-time": "^1.5.0",
+    "rehype-autolink-headings": "^7.1.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.3.1",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^5.9.3",
+    "velite": "^0.4.0"
+  }
+}

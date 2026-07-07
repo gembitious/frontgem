@@ -134,9 +134,45 @@ frontgem/
 
 - TypeScript strict, `readonly` 우선, 명시적 네이밍. 트레이드오프가 있는 결정은
   코드 주석 또는 이 파일에 rationale 기록.
-- 상태 관리: 에디터/lapidary의 hunk 상태는 세밀한 구독이 필요 → signal 계열
-  또는 zustand. 스캐폴딩 시점에 결정하고 근거를 여기 남길 것.
+- 상태 관리: 에디터/lapidary의 hunk 상태는 세밀한 구독이 필요 → **zustand로 확정**
+  (근거는 아래 "스캐폴딩 결정 로그").
 - 커밋은 Phase-체크포인트 단위로 작게.
+
+## 스캐폴딩 결정 로그 (Phase 1, 2026-07)
+
+라이브러리는 스캐폴딩 시점에 유지보수 상태를 확인해 확정하기로 했으므로, 확인 결과와
+근거를 남긴다.
+
+### MDX 파이프라인 → Velite
+
+- **선택**: `velite` (빌드타임 콘텐츠 레이어 + Zod 스키마), 하이라이팅은 `@shikijs/rehype`.
+- **유지보수 상태 확인 (npm 기준)**:
+  - `contentlayer`: 유지보수 중단(스폰서가 Netlify에 인수된 뒤 방치). CLAUDE.md 경고대로 배제.
+  - `next-mdx-remote`: npm 활동 "Inactive"(최근 배포 2026-02), CVE-2026-0969로 Vercel이
+    취약 버전 배포를 기본 차단한 이력 → 리스크.
+  - `velite`: v0.4.0, 최신 배포 2026-06으로 활발히 유지보수 중.
+- **근거**: MDX + frontmatter를 Zod로 검증해 빌드 시 **타입 안전 데이터 레이어**로 컴파일 →
+  TS strict 컨벤션과 정합. 정적 블로그(SSG/ISR) + git-as-CMS 발행(커밋 → Vercel 재빌드로
+  반영)에 최적. 블록 모델(Phase 3)도 같은 MDX를 소비하므로 파이프라인이 일관된다.
+  하이라이팅은 `@shikijs/rehype` 듀얼 테마(github-light/dark)로 클라이언트 JS 없이 다크모드 대응.
+- **Next 16 통합 주의**: velite의 async `build()`는 top-level await가 필요한데 Next 16의
+  config 로더는 require() 기반이라 TLA를 거부한다(`ERR_REQUIRE_ASYNC_MODULE`). 그래서
+  next.config에서 호출하지 않고 npm 스크립트(`velite && next build`, dev는 `velite --watch`)로
+  분리했다.
+- **후속(Phase 2/3)**: textarea 초안의 실시간 프리뷰·퇴고 결과 렌더는 빌드타임 velite로는
+  부족 → 그 시점에 런타임 MDX 렌더러(`next-mdx-remote-client`, 활발히 유지보수되는 포크)를
+  추가한다.
+
+### 상태 관리 → Zustand
+
+- **선택**: `zustand` (selector 기반 세밀 구독).
+- **유지보수 상태 확인**: `zustand` v5, 최신 배포 2026-05로 활발. `@preact/signals-react`도
+  유지보수는 되나 아래 이유로 배제.
+- **근거**: App Router는 RSC가 기본인데 `@preact/signals-react`는 **Server Components와
+  비호환**이고 React 버전 간 취약(React 팀도 signals 모델을 지원하지 않음). zustand는 RSC와
+  공존하며 selector로 hunk 단위 세밀 구독이 가능해 lapidary의 "세밀한 구독" 요구를 충족한다.
+- **설치 시점**: Phase 1은 공개 블로그(전부 서버 렌더)라 클라이언트 상태가 없어 **미설치**.
+  클라이언트 상태가 처음 등장하는 Phase 2/3에서 도입한다(불필요한 의존성 선반영 회피).
 
 ## 아티클 파이프라인 (이 블로그의 존재 이유)
 
