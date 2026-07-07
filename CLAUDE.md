@@ -174,6 +174,40 @@ frontgem/
 - **설치 시점**: Phase 1은 공개 블로그(전부 서버 렌더)라 클라이언트 상태가 없어 **미설치**.
   클라이언트 상태가 처음 등장하는 Phase 2/3에서 도입한다(불필요한 의존성 선반영 회피).
 
+## 스캐폴딩 결정 로그 (Phase 2, 2026-07)
+
+발행 플로우를 구현하며 확정한 선택과 근거.
+
+### 런타임 MDX 렌더러 → next-mdx-remote-client
+
+- **선택**: `next-mdx-remote-client` v2 (활발히 유지보수되는 포크). 서버에서 `serialize`로
+  MDX를 컴파일 → 클라이언트에서 `MDXClient`로 렌더.
+- **근거**: `/write`의 실시간 프리뷰는 빌드타임 velite로 불가능(런타임 입력). serialize를
+  서버(`/api/preview`)에서 돌려 **MDX 컴파일러를 클라이언트 번들에서 제외**하고, 발행 페이지와
+  **동일한 remark/rehype 파이프라인**(remark-gfm + rehype-slug + `@shikijs/rehype`)을 써서
+  프리뷰가 최종 렌더와 일치하도록 했다. 프리뷰 MDX는 `disableImports/disableExports`로 서버
+  모듈 접근을 차단.
+
+### 어드민 인증 → env 패스워드 + HMAC 서명 세션 쿠키
+
+- **선택**: 환경변수 단일 패스워드(`BLOG_ADMIN_PASSWORD`) 검증 후, `AUTH_SECRET`으로 HMAC
+  서명한 세션 쿠키(httpOnly) 발급. `middleware`가 `/write`·`/api/publish`·`/api/preview`를 게이트.
+- **근거**: 개인용이라 OAuth는 과함(CLAUDE.md 방침). 인증 로직은 Web Crypto만 사용해 **edge
+  미들웨어와 node 라우트 핸들러에서 동일 코드로 검증**된다. 필요해지면 GitHub OAuth로 승격.
+- **한계**: 쿠키 탈취 시 만료(7일)까지 유효. 개인 블로그 수준에서 수용.
+
+### 발행 반영 = 커밋 → Vercel 재빌드 (revalidate는 best-effort)
+
+- 발행은 `content/posts/*.mdx`를 GitHub Contents API로 커밋하는 것. **velite가 빌드타임**이라
+  새 글은 커밋이 트리거한 **Vercel 재빌드 후** 반영된다. `/api/publish`의 `revalidatePath`는
+  best-effort일 뿐(빌드타임 데이터 레이어라 신규 글을 즉시 노출하진 못함) — 향후 ISR/런타임
+  콘텐츠 레이어를 얹으면 그때 실효를 가진다.
+
+### 라우트 그룹 (public / admin)
+
+- `src/app/(public)`(max-w-3xl)와 `src/app/(admin)`(에디터 2단 레이아웃용 max-w-6xl)로 분리해
+  루트 레이아웃이 폭을 강제하지 않게 했다(CLAUDE.md 구조와 정합).
+
 ## 아티클 파이프라인 (이 블로그의 존재 이유)
 
 구축 과정 자체가 첫 발행 글 소재. 후보:
