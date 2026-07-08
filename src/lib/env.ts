@@ -17,4 +17,6 @@ export const serverEnv = {
   githubOwner: () => process.env.GITHUB_OWNER ?? 'gembitious',
   githubRepo: () => process.env.GITHUB_REPO ?? 'frontgem',
   githubBranch: () => process.env.GITHUB_BRANCH ?? 'main',
+  anthropicApiKey: () => required('ANTHROPIC_API_KEY'),
+  anthropicModel: () => process.env.ANTHROPIC_MODEL ?? 'claude-opus-4-8',
 }

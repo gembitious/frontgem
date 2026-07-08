@@ -57,3 +57,15 @@ draft: false   # 선택. dev에서만 보이고 프로덕션에선 숨김
 
 필요 env는 [`.env.example`](./.env.example) 참고 (`BLOG_ADMIN_PASSWORD`, `AUTH_SECRET`,
 `GITHUB_TOKEN` 등). 로컬은 `.env.local`에 설정한다.
+
+## lapidary 퇴고 (Phase 3)
+
+에디터의 **lapidary 퇴고** 버튼으로 초안을 AI로 다듬는다.
+
+- 수정 방향 프리셋(간결/기술 정확성/문장 호흡/독자 눈높이/제목 제안) + 자유 지시
+- `/api/revise`가 Anthropic으로 전체 리라이트를 스트리밍 (구조·코드블록 보존)
+- 결과를 블록 정렬 후 **한국어 어절 단위 diff**(`Intl.Segmenter`)로 계산 → hunk 단위
+  수락/거부/직접수정 (통합·좌우 보기)
+- 머지 결과를 에디터에 반영, 다른 옵션으로 재퇴고(라운드) 가능
+
+`ANTHROPIC_API_KEY` 필요 (`ANTHROPIC_MODEL`로 모델 오버라이드, 기본 `claude-opus-4-8`).
