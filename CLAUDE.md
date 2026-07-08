@@ -208,6 +208,40 @@ frontgem/
 - `src/app/(public)`(max-w-3xl)와 `src/app/(admin)`(에디터 2단 레이아웃용 max-w-6xl)로 분리해
   루트 레이아웃이 폭을 강제하지 않게 했다(CLAUDE.md 구조와 정합).
 
+## 스캐폴딩 결정 로그 (Phase 3, 2026-07)
+
+lapidary 퇴고 엔진을 구현하며 확정한 선택과 근거.
+
+### 블록 모델 (`src/entities/document/blocks.ts`)
+
+- 문서 = 블록 배열(`paragraph | heading | code | list | image | quote`). 마크다운 ↔ 블록
+  파서/직렬화를 두고, **diff 엔진이 에디터보다 먼저 이 모델을 소비한다**(CLAUDE.md 원칙).
+- 풀 CommonMark 파서가 아니라, diff·라운드트립에 필요한 안정적 단위만 만드는 실용 스플리터.
+  코드블록은 펜스 사이를 그대로 보존(내용 불변 요구와 정합).
+
+### AI 호출 → Anthropic 전체 리라이트, 스트리밍 (`/api/revise`)
+
+- **모델**: `claude-opus-4-8`(env `ANTHROPIC_MODEL`로 오버라이드). adaptive thinking +
+  effort `medium` — 구조 보존형 한국어 퇴고에 품질·지연 균형.
+- **스트리밍**: `messages.stream`을 SSE(`data: {text|error|done}`)로 프록시. 긴 글의 HTTP
+  타임아웃 회피 + 에디터에서 토큰 실시간 표시. 미들웨어가 `/api/revise`를 게이트.
+- **프롬프트**: 마크다운 구조·코드블록 불변·문단 분할 유지를 시스템 프롬프트로 강제. 수정
+  방향은 프리셋(간결/기술 정확성/문장 호흡/독자 눈높이/제목 제안) + 자유 지시. 프리셋 정의는
+  `features/lapidary/presets.ts`에 두어 UI·서버가 공유.
+- **청킹**: 개인 블로그 글 길이는 1M 컨텍스트에 충분해 현재는 전체 1회 요청. 헤딩 섹션 청킹은
+  아주 긴 글에서만 필요 → Phase 5로 미룸.
+
+### diff 계산은 클라이언트에서 (`features/lapidary/diff/`)
+
+- 2단계: ① 블록 LCS 정렬(정규화 텍스트 동일성) → ② 짝지어진 블록 내부만 어절 단위 diff.
+- 한국어는 공백 토큰화가 부정확 → `Intl.Segmenter('ko', 'word')`로 어절 분할. 공백·문장부호
+  세그먼트까지 보존해 join 시 원문이 정확히 복원(무손실 머지의 전제).
+- **hunk 상태**: `{ id, kind, original, revised, words, status }`, status ∈
+  `pending|accepted|rejected|edited`. 머지 규칙 = **미결정(pending)은 원문 유지**(수락해야 반영)
+  이라 검토 안 한 diff를 머지하면 원문이 그대로 나온다. 라운드: 머지 결과를 에디터 본문에
+  반영 → 다시 `퇴고`로 재실행.
+- 표시: unified(통합) / split(좌우) 토글. hunk 상태는 zustand로 세밀 구독(행별 재렌더).
+
 ## 아티클 파이프라인 (이 블로그의 존재 이유)
 
 구축 과정 자체가 첫 발행 글 소재. 후보:

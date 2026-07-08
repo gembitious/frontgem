@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEditorStore, useHydrated, parseTags } from './store'
 import { Preview } from './preview'
+import { Lapidary } from '@/features/lapidary/lapidary'
+import { useLapidaryStore } from '@/features/lapidary/store'
 import { validateDraft, slugify } from '@/entities/document/frontmatter'
 
 function todayISO(): string {
@@ -35,6 +37,9 @@ export function Editor() {
   const body = useEditorStore((s) => s.body)
   const set = useEditorStore((s) => s.set)
   const reset = useEditorStore((s) => s.reset)
+
+  const beginLapidary = useLapidaryStore((s) => s.begin)
+  const closeLapidary = useLapidaryStore((s) => s.close)
 
   const [publish, setPublish] = useState<PublishState>({ kind: 'idle' })
 
@@ -259,6 +264,14 @@ export function Editor() {
       <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-neutral-200 pt-6 dark:border-neutral-800">
         <button
           type="button"
+          onClick={() => beginLapidary(body)}
+          disabled={!body.trim()}
+          className="rounded-md border border-emerald-600 px-5 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+        >
+          lapidary 퇴고
+        </button>
+        <button
+          type="button"
           onClick={onPublish}
           disabled={publish.kind === 'publishing'}
           className="rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -281,6 +294,14 @@ export function Editor() {
           </p>
         )}
       </div>
+
+      {/* AI 퇴고 엔진: 머지 결과를 본문에 반영 (라운드 반복 가능) */}
+      <Lapidary
+        onApply={(merged) => {
+          set('body', merged)
+          closeLapidary()
+        }}
+      />
     </div>
   )
 }
