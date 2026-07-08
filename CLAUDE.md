@@ -242,6 +242,42 @@ lapidary 퇴고 엔진을 구현하며 확정한 선택과 근거.
   반영 → 다시 `퇴고`로 재실행.
 - 표시: unified(통합) / split(좌우) 토글. hunk 상태는 zustand로 세밀 구독(행별 재렌더).
 
+## 스캐폴딩 결정 로그 (Phase 4, 2026-07)
+
+커스텀 WYSIWYG 에디터를 구현하며 확정한 선택과 근거. 한글 IME가 최대 난제였다.
+
+### 블록 단위 contenteditable + uncontrolled-after-mount (한글 IME 해법)
+
+- 블록마다 독립 contenteditable(Notion 방식). **React가 마운트 후 innerHTML을 다시 쓰지
+  않는다** — 캐럿 아래 DOM을 건드리지 않으므로 한글 조합이 깨지지 않는다.
+- `compositionstart/end` 가드: 조합 중에는 DOM을 읽어 모델에 반영하지 않고, `compositionend`
+  에 한 번만 동기화. keydown은 `isComposing`이면 무시.
+- **구조 변경(분할·병합·타입 전환)은 대상 블록에 새 id를 부여**해 React가 in-place로
+  innerHTML을 덮어쓰는 대신 **깨끗이 remount**하게 한다. 타이핑은 상태를 전혀 건드리지 않고
+  (DOM=uncontrolled, 값은 `contentRef`에 보관), 직렬화는 필요할 때만. 새 블록 포커스는 타이머가
+  아니라 **마운트 시점(registerEl)** 에 적용해 race를 없앤다.
+- 코드블록은 contenteditable 대신 textarea(언어+코드). 이미지/리스트는 간단 편집.
+
+### 편집 기능
+
+- 마크다운 단축 입력: 줄 시작에서 `#`/`##`/`###`·`-`/`*`·`>`·`1.` + space → 블록 타입 전환.
+- Enter=문단 분할(caret 기준 Range로 앞/뒤 분리), Backspace(시작)=이전 블록 병합 또는 타입 강등.
+- 인라인 마크: bold/italic는 `execCommand`(styleWithCSS off로 `<b>/<i>` 태그 강제), code/link는
+  Range 수동 wrap. 붙여넣기는 plaintext로 새니타이즈. undo/redo는 스냅샷 스택 + 강제 remount.
+- 인라인 직렬화(`entities/document/inline.ts`): 블록 텍스트 마크다운 ↔ HTML(bold/italic/code/link).
+
+### 트랙 분리 — 마크다운 ↔ 에디터 모드 토글
+
+- 에디터가 블로그를 블로킹하지 않도록(CLAUDE.md), `body`(마크다운)를 canonical로 두고
+  마크다운 textarea와 WYSIWYG를 **모드 토글**로 공존. WYSIWYG는 블록 모델로 body를 parse/serialize
+  → 발행·프리뷰·lapidary가 그대로 body를 읽는다. 크로스 블록 선택은 MVP 제외.
+
+### 검증
+
+- Playwright + CDP `Input.imeSetComposition`으로 **실제 한글 조합**(하→한 등) 시뮬레이션 →
+  중복·자모 잔여 없이 커밋되고 마크다운으로 무손실 왕복함을 확인. 마크다운 단축·Enter 분할·
+  bold 툴바·모드 토글 왕복도 브라우저 e2e로 검증.
+
 ## 아티클 파이프라인 (이 블로그의 존재 이유)
 
 구축 과정 자체가 첫 발행 글 소재. 후보:

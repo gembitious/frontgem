@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEditorStore, useHydrated, parseTags } from './store'
 import { Preview } from './preview'
+import { WysiwygEditor } from './wysiwyg/wysiwyg-editor'
 import { Lapidary } from '@/features/lapidary/lapidary'
 import { useLapidaryStore } from '@/features/lapidary/store'
 import { validateDraft, slugify } from '@/entities/document/frontmatter'
+
+type EditMode = 'markdown' | 'wysiwyg'
 
 function todayISO(): string {
   const d = new Date()
@@ -42,6 +45,7 @@ export function Editor() {
   const closeLapidary = useLapidaryStore((s) => s.close)
 
   const [publish, setPublish] = useState<PublishState>({ kind: 'idle' })
+  const [mode, setMode] = useState<EditMode>('markdown')
 
   // Default the date to today once, after hydration.
   useEffect(() => {
@@ -237,17 +241,42 @@ export function Editor() {
           </label>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            <label htmlFor="body" className="block text-sm font-medium">
-              본문 (Markdown / MDX)
-            </label>
-            <textarea
-              id="body"
-              value={body}
-              onChange={(e) => set('body', e.target.value)}
-              className={`mt-1.5 min-h-[24rem] flex-1 font-mono text-sm leading-relaxed ${inputClass}`}
-              placeholder={'## 소제목\n\n문단을 작성하세요.'}
-              spellCheck={false}
-            />
+            <div className="flex items-center justify-between">
+              <label htmlFor="body" className="block text-sm font-medium">
+                본문
+              </label>
+              <div className="flex rounded-md border border-neutral-300 text-xs dark:border-neutral-700">
+                <button
+                  type="button"
+                  onClick={() => setMode('markdown')}
+                  className={`rounded-l-md px-2.5 py-1 ${mode === 'markdown' ? 'bg-neutral-200 dark:bg-neutral-800' : ''}`}
+                >
+                  마크다운
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('wysiwyg')}
+                  className={`rounded-r-md px-2.5 py-1 ${mode === 'wysiwyg' ? 'bg-neutral-200 dark:bg-neutral-800' : ''}`}
+                >
+                  에디터
+                </button>
+              </div>
+            </div>
+            {mode === 'markdown' ? (
+              <textarea
+                id="body"
+                value={body}
+                onChange={(e) => set('body', e.target.value)}
+                className={`mt-1.5 min-h-[24rem] flex-1 font-mono text-sm leading-relaxed ${inputClass}`}
+                placeholder={'## 소제목\n\n문단을 작성하세요.'}
+                spellCheck={false}
+              />
+            ) : (
+              <div className="mt-1.5 min-h-[24rem] flex-1 rounded-md border border-neutral-300 p-3 text-sm leading-relaxed dark:border-neutral-700">
+                {/* key by mount: re-parses current body when switching in */}
+                <WysiwygEditor initialMarkdown={body} onChange={(md) => set('body', md)} />
+              </div>
+            )}
           </div>
         </div>
 

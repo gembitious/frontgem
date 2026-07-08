@@ -69,3 +69,13 @@ draft: false   # 선택. dev에서만 보이고 프로덕션에선 숨김
 - 머지 결과를 에디터에 반영, 다른 옵션으로 재퇴고(라운드) 가능
 
 `ANTHROPIC_API_KEY` 필요 (`ANTHROPIC_MODEL`로 모델 오버라이드, 기본 `claude-opus-4-8`).
+
+## 커스텀 WYSIWYG 에디터 (Phase 4)
+
+`/write` 본문에서 **마크다운 / 에디터** 모드를 토글한다.
+
+- 블록 단위 contenteditable(Notion 방식). React는 마운트 후 DOM을 덮어쓰지 않고
+  `compositionstart/end` 가드로 조합을 처리 → **한글 IME가 깨지지 않는다**
+- 마크다운 단축(`## `·`- `·`> ` 등), Enter 분할/Backspace 병합, 인라인 마크(bold/italic/code/link),
+  붙여넣기 새니타이즈, undo/redo
+- 코드블록은 textarea. `body`(마크다운)가 canonical이라 발행·프리뷰·lapidary와 그대로 호환
