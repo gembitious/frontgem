@@ -35,6 +35,13 @@ body {
   text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
+/* WYSIWYG editor: placeholder for empty contenteditable blocks. */
+.wysiwyg [contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #a3a3a3;
+  pointer-events: none;
+}
+
 /* Heading anchor links added by rehype-autolink-headings (behavior: wrap). */
 .prose :where(h2, h3) > a.heading-anchor {
   color: inherit;
