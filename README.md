@@ -43,4 +43,17 @@ draft: false   # 선택. dev에서만 보이고 프로덕션에선 숨김
 ```
 
 파일명이 슬러그가 된다 (`hello.mdx` → `/posts/hello`). 커밋을 푸시하면 Vercel이
-재빌드하며 글이 반영된다. (웹 에디터·발행 버튼은 Phase 2)
+재빌드하며 글이 반영된다.
+
+## 웹에서 발행 (Phase 2)
+
+`/write`에서 직접 쓰고 발행할 수 있다.
+
+- `/write` 접근 → `/login`에서 `BLOG_ADMIN_PASSWORD`로 로그인 (미들웨어가 세션 쿠키 확인)
+- frontmatter 폼 + 마크다운 textarea + **실시간 프리뷰**(발행과 동일한 shiki 파이프라인)
+- 초안은 브라우저 localStorage에 자동 저장
+- **발행** 버튼 → `/api/publish`가 `content/posts/{slug}.mdx`를 GitHub Contents API로 커밋
+  → Vercel 재빌드로 반영
+
+필요 env는 [`.env.example`](./.env.example) 참고 (`BLOG_ADMIN_PASSWORD`, `AUTH_SECRET`,
+`GITHUB_TOKEN` 등). 로컬은 `.env.local`에 설정한다.

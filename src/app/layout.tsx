@@ -39,7 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <SiteHeader />
-          <main className="mx-auto max-w-3xl px-4 py-10">{children}</main>
+          {/* Each route group supplies its own <main> width (public: narrow, admin: wide). */}
+          {children}
           <SiteFooter />
         </ThemeProvider>
       </body>
