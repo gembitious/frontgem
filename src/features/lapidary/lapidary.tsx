@@ -1,6 +1,8 @@
 'use client'
 
 import { useLapidaryStore } from './store'
+import { useLapidaryPrefs } from './prefs'
+import { MODELS } from './models'
 import { mergeHunks, pendingCount } from './diff'
 import { PRESETS } from './presets'
 import { HunkRow } from './hunk-view'
@@ -10,13 +12,14 @@ import { HunkRow } from './hunk-view'
 async function runRevise() {
   const store = useLapidaryStore.getState()
   const { original, presets, instruction } = store
+  const model = useLapidaryPrefs.getState().model
   store.startRevising()
 
   try {
     const res = await fetch('/api/revise', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: original, presets, instruction }),
+      body: JSON.stringify({ body: original, presets, instruction, model }),
     })
     if (res.status === 401) return store.failRevising('세션이 만료되었습니다. 다시 로그인하세요.')
     if (!res.ok || !res.body) return store.failRevising('퇴고 요청에 실패했습니다.')
@@ -54,6 +57,9 @@ function OptionsPhase() {
   const error = useLapidaryStore((s) => s.error)
   const togglePreset = useLapidaryStore((s) => s.togglePreset)
   const setInstruction = useLapidaryStore((s) => s.setInstruction)
+  const model = useLapidaryPrefs((s) => s.model)
+  const setModel = useLapidaryPrefs((s) => s.setModel)
+  const modelHint = MODELS.find((m) => m.id === model)?.hint
 
   return (
     <div>
@@ -90,6 +96,25 @@ function OptionsPhase() {
         placeholder="예: 도입부를 더 강하게, 예시를 하나 추가"
         className="mt-1.5 w-full resize-none rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
       />
+
+      <div className="mt-5 flex items-center gap-2">
+        <label htmlFor="lapidary-model" className="text-sm font-medium">
+          모델
+        </label>
+        <select
+          id="lapidary-model"
+          value={model}
+          onChange={(e) => setModel(e.target.value as typeof model)}
+          className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          {MODELS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        {modelHint && <span className="text-xs text-neutral-400">{modelHint}</span>}
+      </div>
 
       {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

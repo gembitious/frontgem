@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { serverEnv } from '@/lib/env'
 import { promptForPresets } from '@/features/lapidary/presets'
 import { mockRevise, chunkText } from '@/features/lapidary/mock'
+import { isAllowedModel } from '@/features/lapidary/models'
 
 // Auth-gated by middleware. Streams the rewrite as SSE so the editor can render
 // tokens live. The diff is computed client-side once the full text arrives.
@@ -30,7 +31,7 @@ function sse(data: unknown): Uint8Array {
 }
 
 export async function POST(req: Request) {
-  let payload: { body?: string; presets?: string[]; instruction?: string }
+  let payload: { body?: string; presets?: string[]; instruction?: string; model?: string }
   try {
     payload = await req.json()
   } catch {
@@ -44,9 +45,10 @@ export async function POST(req: Request) {
   const presets = Array.isArray(payload.presets) ? payload.presets : []
   const instruction = typeof payload.instruction === 'string' ? payload.instruction : ''
 
-  // Mock mode (LAPIDARY_MOCK=1): exercise the full diff/merge/round flow with no
-  // API call and no API key — a rule-based, structure-preserving edit.
-  const mock = process.env.LAPIDARY_MOCK === '1'
+  // Per-request model choice (validated against the allowlist); falls back to the
+  // env default. 'mock' or LAPIDARY_MOCK=1 uses the free, no-API rule-based path.
+  const selected = isAllowedModel(payload.model) ? payload.model : null
+  const mock = process.env.LAPIDARY_MOCK === '1' || selected === 'mock'
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -60,7 +62,8 @@ export async function POST(req: Request) {
         }
 
         const client = new Anthropic({ apiKey: serverEnv.anthropicApiKey() })
-        const model = serverEnv.anthropicModel()
+        // Past the mock guard `selected` is a concrete model or null.
+        const model = selected ?? serverEnv.anthropicModel()
         // adaptive thinking + effort are only accepted by the 4.6+/5 families. On
         // older tiers (e.g. Haiku 4.5) sending them returns a 400 — so send a plain
         // request there instead. Keeps any ANTHROPIC_MODEL choice working.
