@@ -1,3 +1,17 @@
+// Token-free key check: list models (metadata, not billed). Returns true if the
+// key authenticates. Does NOT verify Pro billing / quota (only a real request does).
+export async function geminiKeyOk(apiKey: string): Promise<boolean> {
+  try {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {
+      headers: { 'x-goog-api-key': apiKey },
+      signal: AbortSignal.timeout(5000),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 // Minimal Gemini streaming client (no SDK) — streams generateContent as SSE and
 // yields text deltas, matching our /api/revise SSE proxy. Google AI Studio keys.
 export async function* streamGemini(opts: {
