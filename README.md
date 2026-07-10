@@ -70,11 +70,16 @@ draft: false   # 선택. dev에서만 보이고 프로덕션에선 숨김
 
 `ANTHROPIC_API_KEY` 필요 (`ANTHROPIC_MODEL`로 모델 오버라이드, 기본 `claude-sonnet-5`).
 
-> **모델 선택(런타임)**: 퇴고 옵션 패널의 **모델** 드롭다운에서 매 요청마다
-> `Sonnet 5 / Opus 4.8 / Haiku 4.5 / 목(무료)`을 고를 수 있다(선택은 localStorage에 기억).
-> 서버는 허용 목록으로 검증하므로 임의 모델 주입이 안 된다. `ANTHROPIC_MODEL`은 폴백 기본값.
+> **모델 선택(런타임)**: 퇴고 옵션 패널의 **모델** 드롭다운에서 매 요청마다 고른다
+> (선택은 localStorage에 기억, 서버가 허용 목록으로 검증 → 임의 모델 주입 차단):
+> - **Claude** Sonnet 5(기본) / Opus 4.8 / Haiku 4.5 — `ANTHROPIC_API_KEY`
+> - **Gemini** Flash(무료) / Pro(유료) — `GEMINI_API_KEY` (Google AI Studio). `-latest` 별칭으로 항상 최신
+> - **미리보기(AI 없음)** — 규칙 기반, 키 불필요
 >
-> **목 모드(무료 테스트)**: 드롭다운에서 `목(무료)`을 고르거나 `LAPIDARY_MOCK=1`을 켜면
+> ⚠️ **Gemini Flash(무료 티어)는 입력·출력이 Google 학습에 사용될 수 있다** — 민감한 초안은
+> Claude나 미리보기를 쓸 것(드롭다운에 경고 표시). Claude API·미리보기는 학습에 쓰지 않음.
+>
+> **목 모드(무료 테스트)**: 드롭다운에서 `미리보기(AI 없음)`을 고르거나 `LAPIDARY_MOCK=1`을 켜면
 > AI 호출·API 키 없이 규칙 기반으로 퇴고 결과를 스트리밍한다. 코드/이미지는 보존하고 prose만
 > 가볍게 다듬어 **diff → 수락/거부 → 머지 → 라운드** UI 전체를 공짜로 테스트할 수 있다.
 

@@ -59,7 +59,9 @@ function OptionsPhase() {
   const setInstruction = useLapidaryStore((s) => s.setInstruction)
   const model = useLapidaryPrefs((s) => s.model)
   const setModel = useLapidaryPrefs((s) => s.setModel)
-  const modelHint = MODELS.find((m) => m.id === model)?.hint
+  const selectedModel = MODELS.find((m) => m.id === model)
+  const modelHint = selectedModel?.hint
+  const modelWarn = selectedModel && 'warn' in selectedModel ? selectedModel.warn : undefined
 
   return (
     <div>
@@ -115,6 +117,11 @@ function OptionsPhase() {
         </select>
         {modelHint && <span className="text-xs text-neutral-400">{modelHint}</span>}
       </div>
+      {modelWarn && (
+        <p className="mt-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+          ⚠ {modelWarn}
+        </p>
+      )}
 
       {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

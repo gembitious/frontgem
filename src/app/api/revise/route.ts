@@ -2,7 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { serverEnv } from '@/lib/env'
 import { promptForPresets } from '@/features/lapidary/presets'
 import { mockRevise, chunkText } from '@/features/lapidary/mock'
-import { isAllowedModel } from '@/features/lapidary/models'
+import { isAllowedModel, providerFor } from '@/features/lapidary/models'
+import { streamGemini } from '@/lib/gemini'
 
 // Auth-gated by middleware. Streams the rewrite as SSE so the editor can render
 // tokens live. The diff is computed client-side once the full text arrives.
@@ -46,9 +47,11 @@ export async function POST(req: Request) {
   const instruction = typeof payload.instruction === 'string' ? payload.instruction : ''
 
   // Per-request model choice (validated against the allowlist); falls back to the
-  // env default. 'mock' or LAPIDARY_MOCK=1 uses the free, no-API rule-based path.
+  // env default (Claude). 'mock' or LAPIDARY_MOCK=1 uses the free rule-based path.
   const selected = isAllowedModel(payload.model) ? payload.model : null
-  const mock = process.env.LAPIDARY_MOCK === '1' || selected === 'mock'
+  const provider = selected ? providerFor(selected) : 'claude'
+  const mock = process.env.LAPIDARY_MOCK === '1' || provider === 'mock'
+  const userPrompt = buildUserPrompt(body, presets, instruction)
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -56,6 +59,21 @@ export async function POST(req: Request) {
         if (mock) {
           for (const chunk of chunkText(mockRevise(body, presets))) {
             controller.enqueue(sse({ text: chunk }))
+          }
+          controller.enqueue(sse({ done: true }))
+          return
+        }
+
+        if (provider === 'gemini') {
+          const geminiModel =
+            selected === 'gemini-pro' ? serverEnv.geminiProModel() : serverEnv.geminiFlashModel()
+          for await (const text of streamGemini({
+            apiKey: serverEnv.geminiApiKey(),
+            model: geminiModel,
+            system: SYSTEM,
+            user: userPrompt,
+          })) {
+            controller.enqueue(sse({ text }))
           }
           controller.enqueue(sse({ done: true }))
           return
@@ -72,7 +90,7 @@ export async function POST(req: Request) {
           model,
           max_tokens: 32000,
           system: SYSTEM,
-          messages: [{ role: 'user', content: buildUserPrompt(body, presets, instruction) }],
+          messages: [{ role: 'user', content: userPrompt }],
         }
         if (supportsAdaptive) {
           // Quality rewrite without max latency; streaming avoids HTTP timeouts.
