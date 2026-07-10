@@ -1,11 +1,27 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useLapidaryStore } from './store'
 import { useLapidaryPrefs } from './prefs'
-import { MODELS } from './models'
+import { MODELS, providerFor, type Provider } from './models'
 import { mergeHunks, pendingCount } from './diff'
 import { PRESETS } from './presets'
 import { HunkRow } from './hunk-view'
+
+type ProviderStatus = { configured: boolean; ok: boolean; reason?: 'missing' | 'invalid' | 'error' }
+type LapidaryStatus = Record<Provider, ProviderStatus>
+
+const KEY_ENV: Record<Provider, string> = {
+  claude: 'ANTHROPIC_API_KEY',
+  gemini: 'GEMINI_API_KEY',
+  mock: '',
+}
+
+// Short availability note for an option label (based on the token-free status check).
+function unavailableSuffix(s: ProviderStatus | undefined): string {
+  if (!s || s.ok) return ''
+  return s.reason === 'missing' ? ' · 키 없음' : ' · 키 오류'
+}
 
 // Drives the streaming rewrite. Uses getState() because it runs across many
 // awaits; the store actions are stable.
@@ -63,6 +79,32 @@ function OptionsPhase() {
   const modelHint = selectedModel?.hint
   const modelWarn = selectedModel && 'warn' in selectedModel ? selectedModel.warn : undefined
 
+  // Token-free provider status, fetched when the panel opens.
+  const [status, setStatus] = useState<LapidaryStatus | null>(null)
+  useEffect(() => {
+    let alive = true
+    fetch('/api/lapidary/status')
+      .then((r) => (r.ok ? (r.json() as Promise<LapidaryStatus>) : null))
+      .then((s) => {
+        if (alive && s) setStatus(s)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const provider = providerFor(model)
+  const providerStatus = status?.[provider]
+  const unavailable = providerStatus ? !providerStatus.ok : false
+  const availabilityMsg = !unavailable
+    ? null
+    : providerStatus?.reason === 'missing'
+      ? `이 모델을 쓰려면 서버에 ${KEY_ENV[provider]} 를 설정해야 합니다.`
+      : providerStatus?.reason === 'invalid'
+        ? 'API 키 인증에 실패했습니다. 키를 확인하세요.'
+        : '상태 확인에 실패했습니다.'
+
   return (
     <div>
       <p className="text-sm font-medium">수정 방향</p>
@@ -112,14 +154,20 @@ function OptionsPhase() {
           {MODELS.map((m) => (
             <option key={m.id} value={m.id}>
               {m.label}
+              {unavailableSuffix(status?.[m.provider])}
             </option>
           ))}
         </select>
         {modelHint && <span className="text-xs text-neutral-400">{modelHint}</span>}
       </div>
-      {modelWarn && (
+      {modelWarn && !unavailable && (
         <p className="mt-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
           ⚠ {modelWarn}
+        </p>
+      )}
+      {availabilityMsg && (
+        <p className="mt-2 rounded-md bg-red-50 px-2.5 py-1.5 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          ⚠ {availabilityMsg}
         </p>
       )}
 
@@ -128,7 +176,8 @@ function OptionsPhase() {
       <button
         type="button"
         onClick={runRevise}
-        className="mt-5 rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+        disabled={unavailable}
+        className="mt-5 rounded-md bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         퇴고 시작
       </button>

@@ -33,5 +33,6 @@ export const config = {
     '/api/preview/:path*',
     '/api/revise/:path*',
     '/api/upload/:path*',
+    '/api/lapidary/:path*',
   ],
 }
