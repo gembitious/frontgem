@@ -7,6 +7,8 @@ import { Preview } from './preview'
 import { WysiwygEditor } from './wysiwyg/wysiwyg-editor'
 import { Lapidary } from '@/features/lapidary/lapidary'
 import { useLapidaryStore } from '@/features/lapidary/store'
+import { useRoundsStore } from '@/features/lapidary/rounds'
+import { RoundHistory } from '@/features/lapidary/round-history'
 import { validateDraft, slugify } from '@/entities/document/frontmatter'
 
 type EditMode = 'markdown' | 'wysiwyg'
@@ -46,6 +48,8 @@ export function Editor() {
 
   const [publish, setPublish] = useState<PublishState>({ kind: 'idle' })
   const [mode, setMode] = useState<EditMode>('markdown')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const roundCount = useRoundsStore((s) => s.rounds.length)
 
   // Default the date to today once, after hydration.
   useEffect(() => {
@@ -299,6 +303,15 @@ export function Editor() {
         >
           lapidary 퇴고
         </button>
+        {roundCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            className="rounded-md px-3 py-2.5 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            라운드 기록 ({roundCount})
+          </button>
+        )}
         <button
           type="button"
           onClick={onPublish}
@@ -327,9 +340,17 @@ export function Editor() {
       {/* AI 퇴고 엔진: 머지 결과를 본문에 반영 (라운드 반복 가능) */}
       <Lapidary
         onApply={(merged) => {
+          const { original, presets, instruction } = useLapidaryStore.getState()
+          useRoundsStore.getState().add({ before: original, after: merged, presets, instruction })
           set('body', merged)
           closeLapidary()
         }}
+      />
+
+      <RoundHistory
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onRevert={(md) => set('body', md)}
       />
     </div>
   )

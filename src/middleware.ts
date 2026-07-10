@@ -27,5 +27,11 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/write/:path*', '/api/publish/:path*', '/api/preview/:path*', '/api/revise/:path*'],
+  matcher: [
+    '/write/:path*',
+    '/api/publish/:path*',
+    '/api/preview/:path*',
+    '/api/revise/:path*',
+    '/api/upload/:path*',
+  ],
 }

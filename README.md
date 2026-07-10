@@ -79,3 +79,11 @@ draft: false   # 선택. dev에서만 보이고 프로덕션에선 숨김
 - 마크다운 단축(`## `·`- `·`> ` 등), Enter 분할/Backspace 병합, 인라인 마크(bold/italic/code/link),
   붙여넣기 새니타이즈, undo/redo
 - 코드블록은 textarea. `body`(마크다운)가 canonical이라 발행·프리뷰·lapidary와 그대로 호환
+
+## 고도화 (Phase 5)
+
+- **이미지 업로드** — 에디터 이미지 블록에서 업로드 → `/api/upload`가 `public/uploads/`에
+  GitHub 커밋 후 raw URL 삽입 (기존 `GITHUB_TOKEN` 재사용, 공개 레포 전제). 툴바에서
+  `+ 이미지`·`+ 코드` 블록 삽입
+- **퇴고 라운드 히스토리** — 적용한 lapidary 라운드를 localStorage에 기록(프리셋·지시·
+  before/after). `라운드 기록` 버튼에서 이전 상태로 되돌리기

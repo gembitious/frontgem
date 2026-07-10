@@ -278,6 +278,27 @@ lapidary 퇴고 엔진을 구현하며 확정한 선택과 근거.
   중복·자모 잔여 없이 커밋되고 마크다운으로 무손실 왕복함을 확인. 마크다운 단축·Enter 분할·
   bold 툴바·모드 토글 왕복도 브라우저 e2e로 검증.
 
+## 스캐폴딩 결정 로그 (Phase 5, 2026-07)
+
+고도화 항목 중 이미지 업로드와 퇴고 라운드 히스토리를 구현했다.
+
+### 이미지 업로드 → GitHub Contents API 재사용 (`/api/upload`)
+
+- **선택**: 발행에 이미 쓰는 GitHub Contents API를 재사용해 `public/uploads/`에 커밋하고,
+  `raw.githubusercontent.com` URL을 반환한다(별도 Blob 스토리지 미도입).
+- **근거**: git-as-CMS 일관성 + 새 의존성/토큰 없음(기존 `GITHUB_TOKEN` 재사용). raw URL은
+  커밋 즉시 사용 가능하고 배포 후에도 유효 → `public/uploads/`의 배포-후-노출 지연 문제를 회피.
+  **공개 레포 전제**. Velite 이미지 파이프라인으로 승격(로컬 최적화·`/uploads` 경로)은 후속.
+- 미들웨어가 `/api/upload` 게이트. 이미지 mime·5MB 검증. 에디터 이미지 블록의 업로드 버튼 +
+  WYSIWYG 툴바의 `+ 이미지`/`+ 코드` 블록 삽입.
+
+### 퇴고 라운드 히스토리 → zustand persist (`features/lapidary/rounds.ts`)
+
+- **선택**: 적용된 머지를 `{presets, instruction, before, after, at}`로 localStorage에 지속
+  (zustand `persist`), 최근 30개 유지.
+- **근거**: 라운드 반복 중 이전 상태로 **되돌리기**가 필요(before로 복원). 크로스 세션 지속으로
+  글을 이어 쓸 때도 기록이 남는다. 에디터 액션바의 `라운드 기록` 버튼 → 목록·되돌리기 모달.
+
 ## 아티클 파이프라인 (이 블로그의 존재 이유)
 
 구축 과정 자체가 첫 발행 글 소재. 후보:
