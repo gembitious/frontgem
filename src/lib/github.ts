@@ -63,3 +63,30 @@ export async function putFile(opts: {
   }
   return { commitUrl: data.commit.html_url, contentSha: data.content.sha }
 }
+
+/** Commit already-base64-encoded bytes (images/binaries) to a new path. */
+export async function putBinaryFile(opts: {
+  path: string
+  contentBase64: string
+  message: string
+}): Promise<PutFileResult> {
+  const res = await fetch(repoPath(opts.path), {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({
+      message: opts.message,
+      content: opts.contentBase64,
+      branch: serverEnv.githubBranch(),
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`GitHub putBinaryFile ${res.status}: ${await res.text()}`)
+  }
+  const data = (await res.json()) as { commit: { html_url: string }; content: { sha: string } }
+  return { commitUrl: data.commit.html_url, contentSha: data.content.sha }
+}
+
+/** raw.githubusercontent URL for a committed path (immediately available; public repo). */
+export function rawUrl(path: string): string {
+  return `https://raw.githubusercontent.com/${serverEnv.githubOwner()}/${serverEnv.githubRepo()}/${serverEnv.githubBranch()}/${path}`
+}

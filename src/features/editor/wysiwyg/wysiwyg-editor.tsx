@@ -14,6 +14,14 @@ type Snapshot = { blocks: EditorBlock[]; content: Record<string, string> }
 
 const TEXT_TYPES = new Set(['paragraph', 'heading', 'quote', 'list'])
 
+async function uploadImage(file: File): Promise<{ url: string; alt: string } | null> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/api/upload', { method: 'POST', body: fd })
+  if (!res.ok) return null
+  return (await res.json()) as { url: string; alt: string }
+}
+
 function tagFor(b: EditorBlock): EditableTag {
   if (b.type === 'heading') return b.level >= 3 ? 'h3' : 'h2'
   if (b.type === 'quote') return 'blockquote'
@@ -310,6 +318,19 @@ export function WysiwygEditor({
     [commit, pushHistory],
   )
 
+  // Append a new block (image/code) — parsing alone can't create these.
+  const insertBlock = useCallback(
+    (block: EditorBlock) => {
+      pushHistory()
+      for (const b of blocksRef.current) {
+        if (TEXT_TYPES.has(b.type)) contentRef.current.set(b.id, readMd(b.id))
+      }
+      setBlocks([...blocksRef.current, block])
+      commit()
+    },
+    [commit, pushHistory, readMd],
+  )
+
   const undo = useCallback(() => {
     const snap = history.current.pop()
     if (!snap) return
@@ -419,6 +440,21 @@ export function WysiwygEditor({
             {label}
           </button>
         ))}
+        <span className="mx-1 w-px self-stretch bg-neutral-200 dark:bg-neutral-800" />
+        <button
+          type="button"
+          onClick={() => insertBlock({ id: newId(), type: 'code', lang: '', code: '' })}
+          className="rounded px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+        >
+          + 코드
+        </button>
+        <button
+          type="button"
+          onClick={() => insertBlock({ id: newId(), type: 'image', alt: '', url: '' })}
+          className="rounded px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+        >
+          + 이미지
+        </button>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -449,10 +485,26 @@ export function WysiwygEditor({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={b.url} alt={b.alt} className="mb-2 max-h-48 rounded object-contain" />
                 )}
+                <label className="mb-1 inline-flex cursor-pointer items-center gap-1 rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800">
+                  이미지 업로드
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0]
+                      e.target.value = ''
+                      if (!f) return
+                      const r = await uploadImage(f)
+                      if (r) updateBlock(b.id, { url: r.url, alt: b.alt || r.alt })
+                      else alert('업로드에 실패했습니다.')
+                    }}
+                  />
+                </label>
                 <input
                   value={b.url}
                   onChange={(e) => updateBlock(b.id, { url: e.target.value })}
-                  placeholder="이미지 URL"
+                  placeholder="이미지 URL (또는 위에서 업로드)"
                   className="w-full rounded border border-neutral-200 px-2 py-1 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900"
                 />
                 <input
