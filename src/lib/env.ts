@@ -21,4 +21,8 @@ export const serverEnv = {
   // Default to Sonnet 5: knowledge-work/글쓰기 품질이 Opus 4.8과 동급이면서 ~40% 저렴 →
   // 구조 보존형 한국어 퇴고에 최적. env로 오버라이드 가능.
   anthropicModel: () => process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
+  geminiApiKey: () => required('GEMINI_API_KEY'),
+  // `-latest` 별칭 → 항상 최신 Flash(무료)/Pro(유료). env로 고정 버전 지정 가능.
+  geminiFlashModel: () => process.env.GEMINI_FLASH_MODEL ?? 'gemini-flash-latest',
+  geminiProModel: () => process.env.GEMINI_PRO_MODEL ?? 'gemini-pro-latest',
 }

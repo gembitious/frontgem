@@ -301,6 +301,18 @@ lapidary 퇴고 엔진을 구현하며 확정한 선택과 근거.
 - **근거**: 라운드 반복 중 이전 상태로 **되돌리기**가 필요(before로 복원). 크로스 세션 지속으로
   글을 이어 쓸 때도 기록이 남는다. 에디터 액션바의 `라운드 기록` 버튼 → 목록·되돌리기 모달.
 
+### 퇴고 백엔드 다변화 → 런타임 모델 선택 (Claude / Gemini / 목)
+
+- **선택**: `/api/revise`를 provider 분기(claude/gemini/mock)로 확장. 퇴고 UI 드롭다운에서
+  요청마다 모델을 고르고(zustand persist), 서버는 **허용 목록(`features/lapidary/models.ts`)으로
+  검증** 후 라우팅 → 임의/고가 모델 주입 차단. `ANTHROPIC_MODEL`은 폴백 기본값.
+- **목(mock)**: `LAPIDARY_MOCK=1` 또는 드롭다운 선택 시 AI·키 없이 규칙 기반 편집을 스트리밍
+  (`features/lapidary/mock.ts`, 코드/이미지 보존). 크레딧 없이 전체 diff/머지/라운드 흐름 테스트.
+- **Gemini**(`lib/gemini.ts`): `generativelanguage`의 `streamGenerateContent?alt=sse`를 SDK 없이
+  프록시, Claude와 동일한 구조 보존 프롬프트를 `systemInstruction`으로 전달. Flash(무료)/Pro(유료)
+  는 `-latest` 별칭으로 항상 최신(env로 고정 가능). **무료 티어는 입력이 Google 학습에 쓰일 수
+  있어** 드롭다운에 경고를 표시(민감 초안은 Claude/목 권장).
+
 ## 아티클 파이프라인 (이 블로그의 존재 이유)
 
 구축 과정 자체가 첫 발행 글 소재. 후보:
