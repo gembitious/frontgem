@@ -221,8 +221,10 @@ lapidary 퇴고 엔진을 구현하며 확정한 선택과 근거.
 
 ### AI 호출 → Anthropic 전체 리라이트, 스트리밍 (`/api/revise`)
 
-- **모델**: `claude-opus-4-8`(env `ANTHROPIC_MODEL`로 오버라이드). adaptive thinking +
-  effort `medium` — 구조 보존형 한국어 퇴고에 품질·지연 균형.
+- **모델**: 기본 `claude-sonnet-5`(env `ANTHROPIC_MODEL`로 오버라이드). 지식·글쓰기 품질이
+  Opus 4.8과 동급이면서 ~40% 저렴 → 구조 보존형 한국어 퇴고에 최적. adaptive thinking +
+  effort `medium`. **모델 적응형**: adaptive/effort를 지원하는 4.6+/5 계열에만 전송하고, Haiku
+  4.5 등 미지원 모델에는 평문 요청을 보내 어떤 모델을 지정해도 400 없이 동작한다.
 - **스트리밍**: `messages.stream`을 SSE(`data: {text|error|done}`)로 프록시. 긴 글의 HTTP
   타임아웃 회피 + 에디터에서 토큰 실시간 표시. 미들웨어가 `/api/revise`를 게이트.
 - **프롬프트**: 마크다운 구조·코드블록 불변·문단 분할 유지를 시스템 프롬프트로 강제. 수정

@@ -44,20 +44,28 @@ export async function POST(req: Request) {
   const instruction = typeof payload.instruction === 'string' ? payload.instruction : ''
 
   const client = new Anthropic({ apiKey: serverEnv.anthropicApiKey() })
+  const model = serverEnv.anthropicModel()
+  // adaptive thinking + effort are only accepted by the 4.6+/5 families. On
+  // older tiers (e.g. Haiku 4.5) sending them returns a 400 — so send a plain
+  // request there instead. Keeps any ANTHROPIC_MODEL choice working.
+  const supportsAdaptive = /opus-4-[678]|sonnet-5|sonnet-4-6|fable-5|mythos-5/.test(model)
+
+  const params: Parameters<typeof client.messages.stream>[0] = {
+    model,
+    max_tokens: 32000,
+    system: SYSTEM,
+    messages: [{ role: 'user', content: buildUserPrompt(body, presets, instruction) }],
+  }
+  if (supportsAdaptive) {
+    // Quality rewrite without max latency; streaming avoids HTTP timeouts.
+    params.thinking = { type: 'adaptive' }
+    params.output_config = { effort: 'medium' }
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        // Adaptive thinking + medium effort: quality rewrite without max latency.
-        // Streaming avoids HTTP timeouts on long posts.
-        const anthropicStream = client.messages.stream({
-          model: serverEnv.anthropicModel(),
-          max_tokens: 32000,
-          thinking: { type: 'adaptive' },
-          output_config: { effort: 'medium' },
-          system: SYSTEM,
-          messages: [{ role: 'user', content: buildUserPrompt(body, presets, instruction) }],
-        })
+        const anthropicStream = client.messages.stream(params)
 
         for await (const event of anthropicStream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
