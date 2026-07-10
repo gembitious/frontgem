@@ -68,7 +68,11 @@ draft: false   # 선택. dev에서만 보이고 프로덕션에선 숨김
   수락/거부/직접수정 (통합·좌우 보기)
 - 머지 결과를 에디터에 반영, 다른 옵션으로 재퇴고(라운드) 가능
 
-`ANTHROPIC_API_KEY` 필요 (`ANTHROPIC_MODEL`로 모델 오버라이드, 기본 `claude-opus-4-8`).
+`ANTHROPIC_API_KEY` 필요 (`ANTHROPIC_MODEL`로 모델 오버라이드, 기본 `claude-sonnet-5`).
+
+> **목 모드(무료 테스트)**: `LAPIDARY_MOCK=1`을 켜면 AI 호출·API 키 없이 규칙 기반으로
+> 퇴고 결과를 스트리밍한다. 코드/이미지는 보존하고 prose만 가볍게 다듬어 **diff → 수락/거부
+> → 머지 → 라운드** UI 전체를 공짜로 테스트할 수 있다 (실제 발행 환경에선 끌 것).
 
 ## 커스텀 WYSIWYG 에디터 (Phase 4)
 
