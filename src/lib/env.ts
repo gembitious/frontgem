@@ -18,5 +18,7 @@ export const serverEnv = {
   githubRepo: () => process.env.GITHUB_REPO ?? 'frontgem',
   githubBranch: () => process.env.GITHUB_BRANCH ?? 'main',
   anthropicApiKey: () => required('ANTHROPIC_API_KEY'),
-  anthropicModel: () => process.env.ANTHROPIC_MODEL ?? 'claude-opus-4-8',
+  // Default to Sonnet 5: knowledge-work/글쓰기 품질이 Opus 4.8과 동급이면서 ~40% 저렴 →
+  // 구조 보존형 한국어 퇴고에 최적. env로 오버라이드 가능.
+  anthropicModel: () => process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5',
 }
