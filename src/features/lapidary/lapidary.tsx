@@ -200,6 +200,20 @@ function RevisingPhase() {
   )
 }
 
+// The model's editorial note (what/why it changed, suggestions it couldn't apply).
+function EditorNote() {
+  const note = useLapidaryStore((s) => s.note)
+  if (!note) return null
+  return (
+    <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+      <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">lapidary 의견</p>
+      <p className="mt-1 whitespace-pre-wrap text-left text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+        {note}
+      </p>
+    </div>
+  )
+}
+
 // Raw AI output (pre-diff), for sanity-checking what the model actually returned —
 // e.g. when a diff looks odd (whole blocks deleted), the cause is visible here.
 function RawResponse() {
@@ -227,6 +241,7 @@ function DiffPhase({ onApply }: { onApply: (merged: string) => void }) {
     return (
       <div className="py-8 text-center text-sm text-neutral-500">
         <p>제안된 변경이 없습니다. 원문이 그대로 유지됩니다.</p>
+        <EditorNote />
         <button
           type="button"
           onClick={() => setShowRaw((v) => !v)}
@@ -291,6 +306,7 @@ function DiffPhase({ onApply }: { onApply: (merged: string) => void }) {
         </div>
       </div>
 
+      <EditorNote />
       {showRaw && <RawResponse />}
 
       <div className="mt-4 flex max-h-[50vh] flex-col gap-2 overflow-auto pr-1">

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { computeDiff, type Hunk, type HunkStatus } from './diff'
+import { splitNote } from './note'
 
 // Hunk state needs fine-grained subscription (each hunk row re-renders on its own
 // accept/reject) → zustand with selectors (CLAUDE.md rationale). Ephemeral: no
@@ -14,6 +15,8 @@ type State = {
   instruction: string
   original: string
   revised: string
+  /** Model's editorial note (after NOTE_MARKER), shown beside the diff. */
+  note: string | null
   hunks: Hunk[]
   display: DiffDisplay
   error: string | null
@@ -42,6 +45,7 @@ const initial: State = {
   instruction: '',
   original: '',
   revised: '',
+  note: null,
   hunks: [],
   display: 'unified',
   error: null,
@@ -59,12 +63,15 @@ export const useLapidaryStore = create<State & Actions>((set, get) => ({
     })),
   setInstruction: (value) => set({ instruction: value }),
 
-  startRevising: () => set({ phase: 'revising', revised: '', error: null, hunks: [] }),
+  startRevising: () => set({ phase: 'revising', revised: '', note: null, error: null, hunks: [] }),
   appendRevised: (text) => set((s) => ({ revised: s.revised + text })),
   failRevising: (message) => set({ error: message, phase: 'options' }),
   finishRevising: () => {
     const { original, revised } = get()
-    set({ hunks: computeDiff(original, revised), phase: 'diff' })
+    // The response is "rewritten body + NOTE_MARKER + editorial note" — only the
+    // body participates in the diff; the note is displayed alongside it.
+    const { body, note } = splitNote(revised)
+    set({ hunks: computeDiff(original, body), note, phase: 'diff' })
   },
 
   setStatus: (id, status) =>
