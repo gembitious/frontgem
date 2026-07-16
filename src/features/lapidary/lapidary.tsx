@@ -200,6 +200,17 @@ function RevisingPhase() {
   )
 }
 
+// Raw AI output (pre-diff), for sanity-checking what the model actually returned —
+// e.g. when a diff looks odd (whole blocks deleted), the cause is visible here.
+function RawResponse() {
+  const revised = useLapidaryStore((s) => s.revised)
+  return (
+    <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-neutral-200 bg-neutral-50 p-3 font-mono text-xs text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+      {revised.trim() === '' ? '(빈 응답)' : revised}
+    </pre>
+  )
+}
+
 function DiffPhase({ onApply }: { onApply: (merged: string) => void }) {
   const hunks = useLapidaryStore((s) => s.hunks)
   const display = useLapidaryStore((s) => s.display)
@@ -207,6 +218,7 @@ function DiffPhase({ onApply }: { onApply: (merged: string) => void }) {
   const acceptAll = useLapidaryStore((s) => s.acceptAll)
   const rejectAll = useLapidaryStore((s) => s.rejectAll)
   const close = useLapidaryStore((s) => s.close)
+  const [showRaw, setShowRaw] = useState(false)
 
   const changed = hunks.filter((h) => h.kind !== 'equal').length
   const pending = pendingCount(hunks)
@@ -217,11 +229,25 @@ function DiffPhase({ onApply }: { onApply: (merged: string) => void }) {
         <p>제안된 변경이 없습니다. 원문이 그대로 유지됩니다.</p>
         <button
           type="button"
-          onClick={close}
-          className="mt-4 rounded-md bg-neutral-200 px-4 py-2 text-sm dark:bg-neutral-800"
+          onClick={() => setShowRaw((v) => !v)}
+          className="mt-3 rounded-md px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
-          닫기
+          {showRaw ? 'AI 결과 원문 닫기' : 'AI 결과 원문 보기'}
         </button>
+        {showRaw && (
+          <div className="text-left">
+            <RawResponse />
+          </div>
+        )}
+        <div>
+          <button
+            type="button"
+            onClick={close}
+            className="mt-4 rounded-md bg-neutral-200 px-4 py-2 text-sm dark:bg-neutral-800"
+          >
+            닫기
+          </button>
+        </div>
       </div>
     )
   }
@@ -255,8 +281,17 @@ function DiffPhase({ onApply }: { onApply: (merged: string) => void }) {
           <button type="button" onClick={rejectAll} className="rounded-md px-2.5 py-1 text-xs text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800">
             모두 거부
           </button>
+          <button
+            type="button"
+            onClick={() => setShowRaw((v) => !v)}
+            className={`rounded-md px-2.5 py-1 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 ${showRaw ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}`}
+          >
+            AI 원문
+          </button>
         </div>
       </div>
+
+      {showRaw && <RawResponse />}
 
       <div className="mt-4 flex max-h-[50vh] flex-col gap-2 overflow-auto pr-1">
         {hunks.map((h) => (
